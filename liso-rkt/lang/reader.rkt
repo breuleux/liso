@@ -78,7 +78,7 @@
    ((rx: (rx+ (rx: "\n" (rx* " "))) "\\")
     (liso-raw-lexer input-port))
    ((rx+ (rx: "\n" (rx* " ")))
-    (let ((parts (reverse (cons "" (string-split lexeme "\n")))))
+    (let ((parts (reverse (cons "" (string-split lexeme "\n" #:trim? #f)))))
       (token-INDENT (string-length (car parts)))))
    ((eof) 'EOF)))
 
