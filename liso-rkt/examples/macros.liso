@@ -1,0 +1,28 @@
+
+#lang liso
+
+define-syntax-rule {x <=> y}:
+   temp = x
+   x := y
+   y := temp
+
+a = 1, b = 2
+displayln: (a, b)
+a <=> b
+displayln: (a, b)
+
+
+define-syntax kond:
+   syntax-rules ():
+      kond: {} =>
+         #f
+      kond: {test => body, rest, ...} =>
+         body <if> test <else> {kond: {rest, ...}}
+
+kond:
+   0 > 0 => "a"
+   0 < 0 => "b"
+   0 == 0 => "c"
+   0 /= 0 => "d"
+
+

@@ -1,0 +1,19 @@
+
+#lang liso
+
+;; Fun with operators!
+
+>>> x =
+   display(x)
+   newline()
+
+>>> "hello!"
+
+
+culprit <in> room <with> weapon =
+   format(msg, culprit, room, weapon) $
+      msg = "Mr. Boddy was killed by ~a in the ~a with the ~a"
+
+>>> {"Colonel Mustard" <in> "ball room" <with> "candlestick"}
+
+
