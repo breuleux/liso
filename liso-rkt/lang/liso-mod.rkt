@@ -43,10 +43,13 @@
   (quasiquote |.|)
   (unquote |^|)
 
+  (expt **)
   (cons ::)
   (or \|\|)
   (and &&)
   (string-append ++)
+
+  (apply racket-apply)
   )
 
  void
@@ -95,6 +98,8 @@
 
 (define-syntax liso-lambda
   (syntax-rules (list)
+    ((_ (list id ... (* rest _)) stmt ...)
+     (lambda (id ... . rest) stmt ...))
     ((_ (list id ...) stmt ...)
      (lambda (id ...) stmt ...))
     ((_ id stmt ...)

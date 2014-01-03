@@ -19,11 +19,12 @@
 
 
 (define $boundary
-  (apply set (string->list " \n\r\t()[]{}.:;,\"'")))
+  (apply set (string->list " \n\r\t()[]{}.:;,\"'`")))
 
 (define-lex-abbrevs
+  (digit (char-set "0123456789"))
   (opchar (char-set "+-*/~^<>=%#$@&|?!"))
-  (symchar (rx~ (char-set " \n\r\t()[]{}.:;,\"'"))))
+  (symchar (rx~ (char-set " \n\r\t()[]{}.:;,\"'`"))))
 
 
 (define liso-raw-lexer
@@ -43,13 +44,24 @@
            (name (substring lexeme 1 (- len 1))))
       (token-ID (read (open-input-string (string-append "#\\" name))))))
 
-   ;; s"symbol"
-   ((rx: "s\"" (rx* (rxor (rx~ "\"") "\\\"")) "\"")
-    (token-ID (read (open-input-string (format "(string->symbol ~a)"
-                                               (substring lexeme 1))))))
+   ;; #"symbol"
+   ((rx: "#\"" (rx* (rxor (rx~ "\"") "\\\"")) "\"")
+    (token-ID (string->symbol
+               (read (open-input-string
+                      (substring lexeme 1))))))
 
    ;; "string"
    ((rx: "\"" (rx* (rxor (rx~ "\"") "\\\"")) "\"")
+    (token-ID (read (open-input-string lexeme))))
+
+   ;; `operator`
+   ((rx: "`" (rx* symchar) "`")
+    (token-OP (read (open-input-string
+                     (substring lexeme 1
+                                (- (string-length lexeme) 1))))))
+
+   ;; numbers
+   ((rx: (rx+ digit) "." (rx+ digit))
     (token-ID (read (open-input-string lexeme))))
    
    ;; :
@@ -59,10 +71,10 @@
 
    ;; .
    ((rx: ".." (rx+ ".")) (token-ID (string->symbol lexeme)))
-   ((rx: "." (rx+ (rxor opchar "." ":")))
-    (token-OP (string->symbol lexeme)))
-   (".." (token-PFX '|..|))
-   ("." (token-PFX '|.|))
+   ((rx: "." (rx* (rxor opchar "." ":")))
+    (token-PFX (string->symbol lexeme)))
+   ;; (".." (token-PFX '|..|))
+   ;; ("." (token-PFX '|.|))
 
    ;; ,
    ((rx+ ",") (token-OP '|,|))
@@ -73,6 +85,7 @@
    ;;    (if (or (eof-object? c) (set-member? $boundary c))
    ;;        (token-OP lexeme)
    ;;        (token-PFX lexeme))))
+   ((rx: "#:" (rx+ symchar)) (token-ID (read (open-input-string lexeme))))
    ((rx+ symchar) (token-ID (read (open-input-string lexeme))))
    ((rx+ (char-set " \t")) (liso-raw-lexer input-port))
    ((rx: (rx+ (rx: "\n" (rx* " "))) "\\")
@@ -236,51 +249,61 @@
          (set! between (next))
          (set! right-op (chk (next) absent)))
         (else
-         (error "Cannot order" left-op right-op)))
+         (error "Operators cannot be mixed in the order given" left-op right-op)))
       (loop)))))
 
 
 (define (order o1 o2)
 
   (define ord
-    `((0 10000 |{|)
-      (10000 0 |}|)
-      (0 10000 |(|)
-      (10000 0 |)|)
-      (0 10000 |[|)
-      (10000 0 |]|)
+    `(;; brackets
+      (255 255 0 10000 |{|)
+      (255 255 10000 0 |}|)
+      (255 255 0 10000 |(|)
+      (255 255 10000 0 |)|)
+      (255 255 0 10000 |[|)
+      (255 255 10000 0 |]|)
 
-      (1 1 |,|)
-      (5 6 |=>|)
-      (10 11 = : := -> !! $)
+      ;; organization and assignment
+      (255 255 1 1 |,|)
+      (255 255 5 6 =>)
+      (255 4   10 11 : ->)  ;; 4 prevents arith/custom operators in lhs
+      (255 255 10 11 = := !! $)
 
       ;; logical
-      (100 100 ,(string->symbol "||"))
-      (101 101 &&)
+      (1 1 100 100 ,(string->symbol "||"))
+      (1 1 101 101 &&)
+      (1 1 102 102 !)
 
       ;; comparison
-      (150 150 < > <= >= == /=)
+      (1 1 150 150 < > <= >= == /=)
 
       ;; arith
-      (201 200 + -)
-      (301 300 * /)
-      (400 401 **)
+      (1 1 201 200 + -)
+      (1 1 301 300 * / // %)
+      (1 1 400 401 **)
 
-      (900 10000 |.| |..|)
-      (1001 1000 | |)
+      ;; dot and juxtaposition
+      (255 255 1001 1000 | |)
+      (255 255 2000 10000 |.| |..|)
       ))
-  (define (prio op sel)
+  (define (prio op sel1 sel2)
     (let loop ((p ord))
       (if (null? p)
-          20
+          (+ 2 (* 20 256))
           (let ((candidates (car p))
                 (rest (cdr p)))
             (if (memq op (cddr candidates))
-                (sel candidates)
+                (+ (sel1 candidates) (* (sel2 candidates) 256))
                 (loop rest))))))
-  (let ((p1 (prio o1 car))
-        (p2 (prio o2 cadr)))
+  (let* ((pp1 (prio o1 car caddr))
+         (pp2 (prio o2 cadr cadddr))
+         (p1 (arithmetic-shift pp1 -8))
+         (p2 (arithmetic-shift pp2 -8))
+         (c1 (bitwise-and pp1 255))
+         (c2 (bitwise-and pp2 255)))
     (cond
+     ((zero? (bitwise-and c1 c2)) 'none)
      ((> p1 p2) 'left)
      ((< p1 p2) 'right)
      (else 'aggr))))
@@ -298,20 +321,6 @@
       (if (eq? (car li) (cadr li))
           (collapse-start (cdr li))
           li)))
-
-;; (define (split-lead expr)
-;;   (match expr
-;;     ((list 'apply f arg)
-;;      (let* ((results (split-lead f))
-;;             (lead (car results))
-;;             (args (cdr results)))
-;;        (cons lead (append (list arg) args))))
-;;     ((list f fargs ...)
-;;      (let* ((results (split-lead f))
-;;             (lead (car results))
-;;             (args (cdr results)))
-;;        (cons lead (append (cons 'list fargs) args))))
-;;     (_ (cons expr '()))))
 
 (define (split-lead expr)
   (match expr
@@ -378,6 +387,12 @@
             ('(=>)
              args)
 
+            ('(|.|)
+             (list 'quasiquote (cadr args)))
+
+            ('(|..|)
+             (list 'quote (cadr args)))
+
             ('(:)
              (let* ((lhs (car args))
                     (body (cadr args))
@@ -439,8 +454,8 @@
 
 (define (liso-read-syntax src in)
   (define ptree (parse in))
-  ;; (pretty-print ptree)
-  ;; (display "======\n")
+  (pretty-print ptree)
+  (display "======\n")
   (define rval
     (with-syntax
         ((code ptree)
