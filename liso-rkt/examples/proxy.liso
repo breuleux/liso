@@ -1,0 +1,122 @@
+
+#lang liso
+
+;; I have not adapted struct, so it is a bit awkward to use; because
+;; prop:procedure maps to (prop procedure), I have to use
+;; #"prop:procedure" which is the syntax I chose to represent
+;; arbitrary symbols (most Scheme implementations use |xyz|, but I
+;; think #"xyz" is better).
+struct proxy:
+   fn()
+   #:property, #"prop:procedure"
+   (p, args *) -> ;; used when the proxy is called normally
+      proxy-fn(p)(args)
+
+obj msg = ;; this is like apply(obj, msg) = ...
+   if proxy?(obj):
+      then: proxy-fn(obj)(msg)
+      else: racket-apply(obj, msg)
+
+define-syntax define-proxy:
+   syntax-rules ():
+      define-proxy defn: {pattern => expr, ...} =>
+         defn = proxy: match-lambda: {pattern => expr, ...}
+
+
+define-proxy rx:
+   string? ? s => regexp(s)
+
+rx"ab*a"
+
+
+define-proxy point(x, y):
+   .x => x
+   .y => y
+   .abs => {x * x + y * y} ** 0.5
+   (i) => match i:
+           0 => x
+           1 => y
+   .add => (p2) -> point(x + p2.x, y + p2.y)
+   .tostring => format("point(~a, ~a)", x, y)
+
+p = point(3, 4)
+p(0) ;; 3
+p.abs ;; 5.0
+p.add(point(8, -1)).tostring ;; "point(11, 3)"
+
+
+
+
+
+
+
+
+
+;; struct proxy:
+;;    fn()
+;;    #:property, s"prop:procedure"
+;;    (p, args *) ->
+;;       proxy-fn(p)(args)
+
+;; obj msg =
+;;    cond:
+;;       proxy?(obj) =>
+;;          proxy-fn(obj)(msg)
+;;       else =>
+;;          racket-apply(obj, msg)
+
+;; ;; point(x, y) = proxy:
+;; ;;    match-lambda:
+;; ;;       quote(x) => x
+;; ;;       quote(y) => y
+;; ;;       quote(abs) => {x * x + y * y} ** 0.5
+
+
+;; ;; define-syntax define-proxy:
+;; ;;    syntax-rules ():
+;; ;;       define-proxy name: {pattern => expr, ...} =>
+;; ;;          {name = proxy: match-lambda: {pattern => expr, ...}
+;; ;;           name}
+
+;; ;; point(x, y) = define-proxy self:
+;; ;;    .x => x
+;; ;;    .y => y
+;; ;;    .abs => {x * x + y * y} ** 0.5
+
+
+
+;; define-syntax define-proxy:
+;;    syntax-rules ():
+;;       define-proxy defn: {pattern => expr, ...} =>
+;;          defn = proxy: match-lambda: {pattern => expr, ...}
+
+;; define-proxy point(x, y):
+;;    .x => x
+;;    .y => y
+;;    .abs => {x * x + y * y} ** 0.5
+;;    .add => (p2) -> point(x + p2.x, y + p2.y)
+;;    .tostring => format("point(~a, ~a)", x, y)
+;;    (i) => match i:
+;;            0 => x
+;;            1 => y
+
+;; p = point(3, 4)
+
+;; p.x
+;; p(0)
+;; p(1)
+;; p.abs
+
+;; p.add(point(8, -1)).tostring
+
+
+
+;; define-proxy rx:
+;;    string? ? s => regexp(s)
+
+;; rx".*"
+
+;; a = 4
+;; 5 * - a
+
+
