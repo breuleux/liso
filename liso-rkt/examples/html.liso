@@ -1,0 +1,43 @@
+
+#lang liso
+
+define-syntax {%%}:
+   syntax-rules (list, begin):
+      {id %% {child, ...}} =>
+         html(.id)(child, ...)
+      {id %% (opt, ...)} =>
+         {++}(html(.id)(opt), ...)
+      {id %% expr} =>
+         html(.id)(expr)
+      {{%%}(id, a, b, ...)} =>
+         html(.id)({%%}(a, b, ...))
+
+html(id) =
+   if symbol?(id):
+      id := symbol->string(id)
+   otag = "<" ++ id ++ ">"
+   ctag = "</" ++ id ++ ">"
+   children ->
+      otag ++ {{++} {map(f, children)}} ++ ctag $
+         f = (x) ->
+            if list?(x):
+               then: {++}x
+               else: x
+
+span %%
+  "Hello, "
+  b %% "Bob"
+
+ul %%
+  li %% "Apples"
+  li %% "Potatoes"
+  li %% "Rosemary"
+  li %% "Bacon"
+
+ul %%
+  li %% ("Apples", "Potatoes", "Rosemary", "Bacon")
+
+nums = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+table %% map(f, nums) $
+   f = (i) -> tr %% map(g, nums) $
+      g = (j) -> td %% number->string(i * j)
