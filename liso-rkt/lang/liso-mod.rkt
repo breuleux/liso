@@ -3,6 +3,11 @@
 
 (provide
 
+ (for-syntax
+  (rename-out
+   ;; (liso-syntax-case syntax-case)
+   (liso-syntax-rules stx-rules)))
+
  (except-out
   (all-from-out "./hack.rkt")
   let           ;; Becomes (let (list (= x y) ...) ...)
@@ -16,8 +21,8 @@
   case          ;; Becomes (case ((list c ...) ...) ...)
   for           ;; Becomes (for ((list (<- x y)) ...) ...)
   set!          ;; Becomes (:= var val)
-  syntax-case
   define-syntax-rule
+  syntax-case
   syntax-rules
   ;; =          ;; becomes define
   ->
@@ -32,8 +37,6 @@
   (liso-if if)
   (liso-case case)
   (liso-for for)
-  (liso-syntax-case syntax-case)
-  (liso-syntax-rules syntax-rules)
   (liso-define-syntax-rule define-syntax-rule)
   (set! :=)
   (begin block)
@@ -135,19 +138,23 @@
     ))
 
 
-(define-syntax liso-syntax-case
-  (syntax-rules (list)
-    ((_ e (list l ...) clause ...)
-     (syntax-case e (l ...) clause ...))))
+(begin-for-syntax
+ (define-syntax liso-syntax-case
+   (syntax-rules (list begin)
+     ((_ e (list l ...) clause ...)
+      (syntax-case e (list begin l ...) clause ...))))
 
-(define-syntax liso-syntax-rules
-  (syntax-rules (list)
-    ((_ (list l ...) clause ...)
-     (syntax-rules (l ...) clause ...))))
+ (define-syntax liso-syntax-rules
+   (syntax-rules (list)
+     ((_ (list l ...) clause ...)
+      (syntax-rules (list begin l ...) clause ...))
+     ((_ ...)
+      (error "ugh")))))
 
 (define-syntax liso-define-syntax-rule
-  (syntax-rules ()
+  (syntax-rules (list begin)
     ((_ expr stmt ...)
-     (define-syntax-rule expr (begin stmt ...)))))
-
+     (define-syntax
+       (syntax-rules (list begin)
+         expr (begin stmt ...))))))
 

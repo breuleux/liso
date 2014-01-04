@@ -73,8 +73,6 @@
    ((rx: ".." (rx+ ".")) (token-ID (string->symbol lexeme)))
    ((rx: "." (rx* (rxor opchar "." ":")))
     (token-PFX (string->symbol lexeme)))
-   ;; (".." (token-PFX '|..|))
-   ;; ("." (token-PFX '|.|))
 
    ;; ,
    ((rx+ ",") (token-OP '|,|))
@@ -253,49 +251,79 @@
       (loop)))))
 
 
+
+
+(define order-table
+  `(;; brackets
+    ((255 255 0 10000) |{| |(| |[|)
+    ((255 255 10000 0) |}| |)| |]|)
+
+    ;; organization and assignment
+    ((255 255 1 1) |,|)
+    ((255 255 5 6) =>)
+    ((255 4   10 11) : ->)  ;; 4 prevents arith/custom operators in lhs
+    ((255 255 10 11) = := !! $)
+
+    ;; <...>
+    ((255 255 20 20)
+     ,(lambda (x)
+        (let* ((s (symbol->string x))
+               (l (string-length s)))
+          (and (eq? (string-ref s 0) #\<)
+               (eq? (string-ref s (- l 1)) #\>)))))
+
+    ;; logical
+    ((1 1 100 100) \|\|)
+    ((1 1 101 101) &&)
+    ((1 1 102 102) !)
+
+    ;; comparison
+    ((1 1 150 150) < > <= >= == /=)
+
+    ;; arith
+    ((1 1 201 200) + -)
+    ((1 1 301 300) * / // %)
+    ((1 1 400 401) **)
+
+    ;; dot and juxtaposition
+    ((255 255 1001 1000) | |)
+    ((255 255 2000 10000)
+     ,(lambda (x)
+        (let* ((s (symbol->string x)))
+          (eq? (string-ref s 0) #\.))))
+
+    ;; custom
+    ((2 2 20 20) ,(lambda (x) #t))
+    ))
+
+(define ord-hash (make-hasheq))
+(define ord-fns '())
+
+(for-each
+ (lambda (entry)
+   (let ((policy (car entry)))
+     (for-each
+      (lambda (operator)
+        (if (symbol? operator)
+            (hash-set! ord-hash operator policy)
+            (set! ord-fns (cons (cons operator policy) ord-fns))))
+      (cdr entry))))
+ order-table)
+(set! ord-fns (reverse ord-fns))
+
 (define (order o1 o2)
 
-  (define ord
-    `(;; brackets
-      (255 255 0 10000 |{|)
-      (255 255 10000 0 |}|)
-      (255 255 0 10000 |(|)
-      (255 255 10000 0 |)|)
-      (255 255 0 10000 |[|)
-      (255 255 10000 0 |]|)
-
-      ;; organization and assignment
-      (255 255 1 1 |,|)
-      (255 255 5 6 =>)
-      (255 4   10 11 : ->)  ;; 4 prevents arith/custom operators in lhs
-      (255 255 10 11 = := !! $)
-
-      ;; logical
-      (1 1 100 100 ,(string->symbol "||"))
-      (1 1 101 101 &&)
-      (1 1 102 102 !)
-
-      ;; comparison
-      (1 1 150 150 < > <= >= == /=)
-
-      ;; arith
-      (1 1 201 200 + -)
-      (1 1 301 300 * / // %)
-      (1 1 400 401 **)
-
-      ;; dot and juxtaposition
-      (255 255 1001 1000 | |)
-      (255 255 2000 10000 |.| |..|)
-      ))
   (define (prio op sel1 sel2)
-    (let loop ((p ord))
-      (if (null? p)
-          (+ 2 (* 20 256))
-          (let ((candidates (car p))
-                (rest (cdr p)))
-            (if (memq op (cddr candidates))
-                (+ (sel1 candidates) (* (sel2 candidates) 256))
-                (loop rest))))))
+    (let* ((hash-policy (hash-ref ord-hash op #f))
+           (policy (if hash-policy
+                       hash-policy
+                       (let loop ((fns ord-fns))
+                         (let ((fn (car fns)))
+                           (if ((car fn) op)
+                               (cdr fn)
+                               (loop (cdr fns))))))))
+      (+ (sel1 policy) (* (sel2 policy) 256))))
+
   (let* ((pp1 (prio o1 car caddr))
          (pp2 (prio o2 cadr cadddr))
          (p1 (arithmetic-shift pp1 -8))
