@@ -56,6 +56,7 @@
   )
 
  void
+ void?
  <>
  /=
  $
@@ -63,6 +64,8 @@
  )
 
 (define void (cond))
+
+(define (void? x) (eq? x void))
 
 (define-syntax-rule (if2 a test b) (if test a b))
 

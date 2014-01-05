@@ -1,0 +1,53 @@
+
+#lang liso
+
+require:
+   "proxy.liso"
+
+;; A mini-language for regular expressions
+;; "..." matches a literal string
+;; expr *          matches 0 or more
+;; expr * {m, n}   matches m to n occurrences
+;; expr * n        matches n times exactly
+;; expr +          matches 1 or more
+;; expr ?          matches 0 or once
+;; expr ?          matches 0 or once
+;; expr1 || expr2  matches either expr1 or expr2
+;; (...)           capture
+;; {...}           groups but does not capture
+
+build-regexp = match-lambda:
+   .any => "."
+   .alpha => "[a-zA-Z]"
+   .digit => "[0-9]"
+   string? ? s => regexp-quote(s)
+   char? ? c => string(c)
+   (.{||}, a, b) => format("(?:~a|~a)", build-regexp(a), build-regexp(b))
+   (.{*}, x, void? ? _) => format("(?:~a*)", build-regexp(x))
+   (.{*}, x, (.begin, m, n)) => format("(?:~a{~a,~a})", build-regexp(x), m, n)
+   (.{*}, x, times) => format("(?:~a{~a})", build-regexp(x), times)
+   (.{+}, x, void? ? _) => format("(?:~a+)", build-regexp(x))
+   (.{?}, x, void? ? _) => format("(?:~a?)", build-regexp(x))
+   (.list, xs, ...) => "(" ++ {++}{map(build-regexp, xs)} ++ ")"
+   (.begin, xs, ...) => "(?:" ++ {++}{map(build-regexp, xs)} ++ ")"
+
+define-proxy rx:
+   string? ? s => regexp(s)
+   x => regexp(build-regexp(x))
+
+rx"ab*a"
+
+rx.{"a", "b"*, "a"}
+rx.{"a", "b" * {2, 5}, "a"}
+
+num = rx.
+  (digit +)
+  {".", (digit +)}?
+  {"e" || "E", ({"+" || "-"}?, digit +)}?
+
+num
+regexp-match(num, "1234")
+regexp-match(num, "0.1")
+regexp-match(num, "10e-44")
+
+

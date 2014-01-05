@@ -6,7 +6,6 @@
          data/gvector
          parser-tools/lex
          (prefix-in rx parser-tools/lex-sre)
-         parser-tools/yacc
          syntax/strip-context)
 
 (provide
@@ -76,21 +75,26 @@
 
    ;; ,
    ((rx+ ",") (token-OP '|,|))
+
+   ;; operator
    ((rx: opchar (rx? (rx: (rx* symchar) opchar)))
     (token-OP (string->symbol lexeme)))
-   ;; ((rx+ opchar)
-   ;;  (let ((c (peek-char input-port)))
-   ;;    (if (or (eof-object? c) (set-member? $boundary c))
-   ;;        (token-OP lexeme)
-   ;;        (token-PFX lexeme))))
+
+   ;; identifier
    ((rx: "#:" (rx+ symchar)) (token-ID (read (open-input-string lexeme))))
    ((rx+ symchar) (token-ID (read (open-input-string lexeme))))
+
+   ;; White space
    ((rx+ (char-set " \t")) (liso-raw-lexer input-port))
    ((rx: (rx+ (rx: "\n" (rx* " "))) "\\")
     (liso-raw-lexer input-port))
+
+   ;; Indent
    ((rx+ (rx: "\n" (rx* " ")))
     (let ((parts (reverse (cons "" (string-split lexeme "\n" #:trim? #f)))))
       (token-INDENT (string-length (car parts)))))
+
+   ;; EOF
    ((eof) 'EOF)))
 
 (define (liso-raw port)
@@ -254,6 +258,13 @@
 
 
 (define order-table
+  ;; ((compat-left compat-right prio-left prio-right) operators ...)
+  ;; When comparing op1 to op2,
+  ;; if compat-left(op1) & compat-right(op2) == 0: error
+  ;; if prio-left(op1) > prio-right(op2): op1 wins
+  ;; if prio-left(op1) < prio-right(op2): op2 wins
+  ;; if prio-left(op1) == prio-right(op2): op1 and op2 are aggregated
+
   `(;; brackets
     ((255 255 0 10000) |{| |(| |[|)
     ((255 255 10000 0) |}| |)| |]|)
@@ -267,6 +278,7 @@
     ;; <...>
     ((255 255 20 20)
      ,(lambda (x)
+        ;; x == <{...}>, e.g. <if>, <union>, etc.
         (let* ((s (symbol->string x))
                (l (string-length s)))
           (and (eq? (string-ref s 0) #\<)
@@ -289,6 +301,7 @@
     ((255 255 1001 1000) | |)
     ((255 255 2000 10000)
      ,(lambda (x)
+        ;; x == .{...}, e.g. ., .+, .&*&, etc.
         (let* ((s (symbol->string x)))
           (eq? (string-ref s 0) #\.))))
 
@@ -311,25 +324,21 @@
  order-table)
 (set! ord-fns (reverse ord-fns))
 
+
+(define (get-priority op sel1 sel2)
+  (let* ((hash-policy (hash-ref ord-hash op #f))
+         (policy (if hash-policy
+                     hash-policy
+                     (let loop ((fns ord-fns))
+                       (let ((fn (car fns)))
+                         (if ((car fn) op)
+                             (cdr fn)
+                             (loop (cdr fns))))))))
+    (list (sel1 policy) (sel2 policy))))
+
 (define (order o1 o2)
-
-  (define (prio op sel1 sel2)
-    (let* ((hash-policy (hash-ref ord-hash op #f))
-           (policy (if hash-policy
-                       hash-policy
-                       (let loop ((fns ord-fns))
-                         (let ((fn (car fns)))
-                           (if ((car fn) op)
-                               (cdr fn)
-                               (loop (cdr fns))))))))
-      (+ (sel1 policy) (* (sel2 policy) 256))))
-
-  (let* ((pp1 (prio o1 car caddr))
-         (pp2 (prio o2 cadr cadddr))
-         (p1 (arithmetic-shift pp1 -8))
-         (p2 (arithmetic-shift pp2 -8))
-         (c1 (bitwise-and pp1 255))
-         (c2 (bitwise-and pp2 255)))
+  (match-let (((list c1 p1) (get-priority o1 car caddr))
+              ((list c2 p2) (get-priority o2 cadr cadddr)))
     (cond
      ((zero? (bitwise-and c1 c2)) 'none)
      ((> p1 p2) 'left)
@@ -421,6 +430,14 @@
             ('(|..|)
              (list 'quote (cadr args)))
 
+            ('(|.:|)
+             (let* ((arg (cadr args)))
+               (match arg
+                 ((list begin rest ...)
+                  (list 'quasiquote rest))
+                 ((list begin rest ...)
+                  (list 'quasiquote arg)))))
+
             ('(:)
              (let* ((lhs (car args))
                     (body (cadr args))
@@ -433,11 +450,13 @@
                     stmts)
                    (_
                     (list body))))
-               (cons
-                lead
-                (if (eq? arg absent)
-                    rest
-                    (cons arg rest)))))
+               (if (eq? lead void)
+                   (if (eq? arg absent)
+                       rest
+                       (cons arg rest))
+                   (if (eq? arg absent)
+                       (cons lead rest)
+                       (cons lead (cons arg rest))))))
 
             ((list '|,| ...)
              (let ((args (filter (lambda (arg) (not (eq? arg void))) args)))
@@ -482,8 +501,8 @@
 
 (define (liso-read-syntax src in)
   (define ptree (parse in))
-  (pretty-print ptree)
-  (display "======\n")
+  ;; (pretty-print ptree)
+  ;; (display "======\n")
   (define rval
     (with-syntax
         ((code ptree)
@@ -491,5 +510,3 @@
       (strip-context
        #'(module _ path code))))
   rval)
-
-
