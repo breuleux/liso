@@ -1,16 +1,21 @@
 
 #lang liso
 
+
+;; swap macro (implemented as the <=> operator)
+
 define-syntax-rule {x <=> y}:
-   temp = x
-   x := y
-   y := temp
+   let (temp = x):
+      x := y
+      y := temp
 
 a = 1, b = 2
 displayln: (a, b)
 a <=> b
 displayln: (a, b)
 
+
+;; A clone of cond, backed with <if>_<else>
 
 define-syntax kond:
    syntax-rules ():
@@ -25,4 +30,47 @@ kond:
    0 == 0 => "c"
    0 /= 0 => "d"
 
+
+;; Takes an arbitrary number of expressions and "threads" each result
+;; into the first argument of the next call. It recognizes lambdas.
+
+;; thread(a, b(c), d, (e) -> f)
+;; ==> {(e) -> f}(d(b(a, c)))
+
+define-syntax thread-one:
+   syntax-rules (->, list, begin):
+      _(v, x -> y) => {x -> y}(v)
+      _(v, f(args, ...)) => f(v, args, ...)
+      _(v, f) => f(v)
+
+define-syntax thread:
+   syntax-rules (list, begin):
+      thread(init, {entry, ...}) =>
+         thread(init, entry, ...)
+      thread(init, entry) =>
+         thread-one(init, entry)
+      thread(init, entry, rest, ...) =>
+         thread(thread-one(init, entry), rest, ...)
+
+thread((1, 2, 3, 4), reverse, car, * 10)
+
+thread (1, 2, 3, 4):
+   reverse
+   car
+   * 10
+   (x) -> x / 3
+
+
+;; Aliasing thread to the |> operator
+
+define-syntax-rule {|>}(x, ...):
+   thread(x, ...)
+
+(1, 2, 3, 4) |>
+   reverse
+   car
+   * 10
+   (x) -> x / 3
+
+(1, 2, 3) |> car |> {+ 1} |> {* 8}
 
