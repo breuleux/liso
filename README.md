@@ -43,8 +43,49 @@ Highlights
   in all contexts, they have no associated semantics, and they reduce
   to extremely regular structures.
 
-* It _does support macros. In fact, you can use Racket's macro system
+* It *does* support macros. In fact, you can use Racket's macro system
   without any changes to their underlying logic. See
   [here](https://github.com/breuleux/liso/blob/master/liso-rkt/examples/macros.liso)
   for example.
+
+
+Rules
+-----
+
+    + Rule       + O-expression              + S-expression
+    | Operator   | x <operator> y            | (<operator> x y)
+    |            | x <op> y <op> z           | (<op> x y z)
+    |            | x <op1> y <op2> z         | (<op1>_<op2> x y z) (op1 != op2)
+    | Apply      | x y                       | (apply x y)
+    |            | x y z                     | (apply (apply x y) z)
+    | List       | ()                        | (list)
+    |            | (x, ...)                  | (list x ...)
+    | Apply+List | x(y, ...)                 | (x y ...)
+    | Group      | {x}                       | x
+    |            | {x, y, ...}               | (begin x y ...)
+    | Arrow      | x => y                    | (x y) (for all x)
+    | Lift       | x : y                     | (x y) (for atomic x)
+    |            | x y : z                   | (x y z)
+    |            | x y : {z, w, ...}         | (x y z w ...)
+    |            | x y(a, ...) : {z, w, ...} | (x (y a ...) z w ...)
+    |            | x y q : {z, w, ...}       | (x (apply y q) z w ...)
+
+
+Aliases
+-------
+
+    + Usual syntax        + Equivalent operator
+    | define spec: body   | spec = body
+    | lambda args: body   | args -> body
+    | set! var: value     | var := value
+    | quote: expr         | ..expr
+    | quasiquote: expr    | .expr
+    | unquote: expr       | ^expr
+    | expt(x, y)          | x ** y
+    | cons(x, y)          | x :: y
+    | string-append(x, y) | x ++ y
+    | not(x == y)         | x /= y
+    | or(a, b, c)         | a || b || c
+    | and(a, b, c)        | a && b && c
+    | not(x)              | ! x
 
