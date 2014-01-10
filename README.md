@@ -10,7 +10,7 @@ Examples
 --------
 
 There are several examples
-[here](https://github.com/breuleux/liso/tree/master/liso-rkt/examples),
+[here](https://github.com/breuleux/liso/tree/master/liso/examples),
 including examples of macros and operator macros.
 
 
@@ -45,7 +45,7 @@ Highlights
 
 * It *does* support macros. In fact, you can use Racket's macro system
   without any changes to their underlying logic. See
-  [here](https://github.com/breuleux/liso/blob/master/liso-rkt/examples/macros.liso)
+  [here](https://github.com/breuleux/liso/blob/master/liso/examples/macros.liso)
   for example.
 
 
