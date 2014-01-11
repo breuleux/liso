@@ -1,5 +1,5 @@
 
-#lang liso
+#lang planet breuleux/liso
 
 ;; Fun with operators!
 

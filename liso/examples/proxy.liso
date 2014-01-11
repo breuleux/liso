@@ -1,5 +1,5 @@
 
-#lang liso
+#lang planet breuleux/liso
 
 ;; Read point.liso and regex.liso for uses of this module.
 
