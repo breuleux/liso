@@ -5,7 +5,7 @@
 ;; swap macro (implemented as the <=> operator)
 
 define-syntax-rule {x <=> y}:
-   let [temp = x]:
+   vars [temp = x]:
       x := y
       y := temp
 

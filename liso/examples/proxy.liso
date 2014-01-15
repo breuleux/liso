@@ -21,8 +21,8 @@ struct proxy:
 
 obj msg = ;; this is like apply[obj, msg] = ...
    if proxy?[obj]:
-      then: proxy-fn[obj][msg]
-      else: racket-apply[obj, msg]
+      proxy-fn[obj][msg]
+      racket-apply[obj, msg]
 
 define-syntax define-proxy:
    syntax-rules []:

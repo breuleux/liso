@@ -10,17 +10,17 @@
 
  (except-out
   (all-from-out "./hack.rkt")
-  let           ;; Becomes (let (list (= x y) ...) ...)
-  let*          ;; Becomes (let* (list (= x y) ...) ...)
-  letrec        ;; Becomes (letrec (list (= x y) ...) ...)
-  parameterize  ;; Becomes (parameterize (list (= x y) ...) ...)
-  lambda        ;; Becomes (lambda (list x ...) ...)
+  ;; let           ;; Becomes (let (list (= x y) ...) ...)
+  ;; let*          ;; Becomes (let* (list (= x y) ...) ...)
+  ;; letrec        ;; Becomes (letrec (list (= x y) ...) ...)
+  ;; parameterize  ;; Becomes (parameterize (list (= x y) ...) ...)
+  ;; lambda        ;; Becomes (lambda (list x ...) ...)
   ;; define     ;; unchanged
-  if            ;; Becomes (if test (then ...) (else ...))
+  ;; if            ;; Becomes (if test (then ...) (else ...))
   ;; cond       ;; unchanged
-  case          ;; Becomes (case ((list c ...) ...) ...)
-  for           ;; Becomes (for ((list (<- x y)) ...) ...)
-  set!          ;; Becomes (:= var val)
+  ;; case          ;; Becomes (case ((list c ...) ...) ...)
+  ;; for           ;; Becomes (for ((list (<- x y)) ...) ...)
+  ;; set!          ;; Becomes (:= var val)
 
   ;; define-syntax-rule
   ;; syntax-case
@@ -30,18 +30,17 @@
   )
 
  (rename-out
-  (liso-let let)
-  (liso-let* let*)
-  (liso-letrec letrec)
-  (liso-parameterize parameterize)
+  (liso-let vars)
+  (liso-let* vars*)
+  (liso-letrec varsrec)
+  (liso-parameterize params)
   (liso-lambda ->)
-  (liso-if if)
-  (liso-case case)
-  (liso-for for)
+  ;; (liso-if if)
+  ;; (liso-case case)
+  ;; (liso-for for)
   ;; (liso-define-syntax-rule define-syntax-rule)
   ;; (liso-syntax-rules syntax-rules)
   (set! :=)
-  (begin block)
   (if <then>_<else>)
   (if2 <if>_<else>)
   (quote |..|)
@@ -62,6 +61,7 @@
  <>
  /=
  $
+ block
 
  )
 
@@ -79,6 +79,8 @@
    ((obj) (pretty-print obj))
    ((port obj) (pretty-print obj port))))
 
+(define-syntax-rule (block . body)
+  (let () . body))
 
 (define-syntax liso-let
   (syntax-rules (list =)

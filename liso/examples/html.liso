@@ -15,14 +15,12 @@ define-syntax {%%}:
 html[id] =
    if symbol?[id]:
       id := symbol->string[id]
+      #f
    otag = "<" ++ id ++ ">"
    ctag = "</" ++ id ++ ">"
    children ->
       {otag ++ {{++} {map[f, children]}} ++ ctag} $
-         f = [x] ->
-            if list?[x]:
-               then: {++}x
-               else: x
+         f = [x] -> if[list?[x], {++}x, x]
 
 span %%
   "Hello, "

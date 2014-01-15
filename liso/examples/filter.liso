@@ -3,13 +3,13 @@
 
 filt[pred?, xs] =
    if null?[xs]:
-      then: []
-      else:
+      []
+      block:
          x = car[xs]
          rest = filt[pred?, cdr[xs]]
          if pred?[x]:
-            then: x :: rest
-            else: rest
+            x :: rest
+            rest
 
 results = filt[[x] -> x > 0
                [0, 1, -2, -3, 4]]
