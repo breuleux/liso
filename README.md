@@ -16,6 +16,16 @@ Examples
     
     fib[30]
 
+<=>
+
+    (= (fib n)
+       (if (<= n 1)
+           n
+           (+ (fib (- n 1))
+              (fib (- n 2)))))
+    (fib 30)
+
+
 There are many more examples
 [here](https://github.com/breuleux/liso/tree/master/liso/examples),
 including examples of macros and operator macros.
