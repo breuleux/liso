@@ -9,7 +9,14 @@ here for Racket.
 Examples
 --------
 
-There are several examples
+    fib[n] =
+       if {n <= 1}:
+          n
+          fib[n - 1] + fib[n - 2]
+    
+    fib[30]
+
+There are many more examples
 [here](https://github.com/breuleux/liso/tree/master/liso/examples),
 including examples of macros and operator macros.
 
@@ -58,9 +65,9 @@ Rules
     |            | x <op1> y <op2> z         | (<op1>_<op2> x y z) (op1 != op2)
     | Apply      | x y                       | (apply x y)
     |            | x y z                     | (apply (apply x y) z)
-    | List       | ()                        | (list)
-    |            | (x, ...)                  | (list x ...)
-    | Apply+List | x(y, ...)                 | (x y ...)
+    | List       | []                        | (list)
+    |            | [x, ...]                  | (list x ...)
+    | Apply+List | x[y, ...]                 | (x y ...)
     | Group      | {x}                       | x
     |            | {x, y, ...}               | (begin x y ...)
     | Arrow      | x => y                    | (x y) (for all x)
@@ -69,6 +76,7 @@ Rules
     |            | x y : {z, w, ...}         | (x y z w ...)
     |            | x y(a, ...) : {z, w, ...} | (x (y a ...) z w ...)
     |            | x y q : {z, w, ...}       | (x (apply y q) z w ...)
+    | Sexp       | (...)                     | (...)
 
 
 Aliases

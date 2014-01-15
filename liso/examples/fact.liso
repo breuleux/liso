@@ -1,0 +1,9 @@
+
+#lang liso
+
+define {n ! _}:
+   if {n <= 2}:
+      n
+      n * {{n - 1}!}
+
+10 !
