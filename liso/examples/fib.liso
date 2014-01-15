@@ -1,10 +1,9 @@
 
-#lang planet breuleux/liso
+#lang liso
 
-fib(n) =
+fib[n] =
    if {n <= 1}:
       then: n
-      else: fib(n - 1) + fib(n - 2)
+      else: fib[n - 1] + fib[n - 2]
 
-fib(30)
-
+fib[30]

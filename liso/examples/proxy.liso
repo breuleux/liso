@@ -1,5 +1,5 @@
 
-#lang planet breuleux/liso
+#lang liso
 
 ;; Read point.liso and regex.liso for uses of this module.
 
@@ -14,17 +14,17 @@ provide:
 ;; arbitrary symbols (most Scheme implementations use |xyz|, but I
 ;; think #"xyz" is better).
 struct proxy:
-   fn()
+   fn[]
    #:property, #"prop:procedure"
-   (p, args *) -> ;; used when the proxy is called normally
-      proxy-fn(p)(args)
+   [p, args *] -> ;; used when the proxy is called normally
+      proxy-fn[p][args]
 
-obj msg = ;; this is like apply(obj, msg) = ...
-   if proxy?(obj):
-      then: proxy-fn(obj)(msg)
-      else: racket-apply(obj, msg)
+obj msg = ;; this is like apply[obj, msg] = ...
+   if proxy?[obj]:
+      then: proxy-fn[obj][msg]
+      else: racket-apply[obj, msg]
 
 define-syntax define-proxy:
-   syntax-rules ():
+   syntax-rules []:
       define-proxy defn: {pattern => expr, ...} =>
          defn = proxy: match-lambda: {pattern => expr, ...}

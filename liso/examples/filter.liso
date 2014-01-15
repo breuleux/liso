@@ -1,17 +1,17 @@
 
-#lang planet breuleux/liso
+#lang liso
 
-filt(pred?, xs) =
-   if null?(xs):
-      then: ()
+filt[pred?, xs] =
+   if null?[xs]:
+      then: []
       else:
-         x = car(xs)
-         rest = filt(pred?, cdr(xs))
-         if pred?(x):
+         x = car[xs]
+         rest = filt[pred?, cdr[xs]]
+         if pred?[x]:
             then: x :: rest
             else: rest
 
-results = filt((x) -> x > 0
-               (0, 1, -2, -3, 4))
+results = filt[[x] -> x > 0
+               [0, 1, -2, -3, 4]]
 min results
 
