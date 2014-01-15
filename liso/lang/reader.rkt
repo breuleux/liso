@@ -4,17 +4,12 @@
 (require srfi/1
          data/queue
          data/gvector
-         ;; parser-tools/lex
-         ;; (prefix-in rx parser-tools/lex-sre)
          syntax/strip-context)
 
 (provide
  (rename-out
   (liso-read read)
   (liso-read-syntax read-syntax)))
-
-
-;; (define-tokens tk (ID OP PFX SFX OPEN CLOSE INDENT))
 
 
 (define liso-readtable
@@ -39,14 +34,6 @@
         (token 'ID void)))
 
 
-;; (define $boundary
-;;   (apply set (string->list " \n\r\t()[]{}.:;,\"'`")))
-
-;; (define-lex-abbrevs
-;;   (digit (char-set "0123456789"))
-;;   (opchar (char-set "+-*/~^<>=%#$@&|?!"))
-;;   (symchar (rx~ (char-set " \n\r\t()[]{}.:;,\"'`"))))
-
 (define $opchar "[+\\-*/~^<>=%$@&|?!]")
 (define $symchar "[^ \n\r\t()\\[\\]{}.:;,\"'`#]")
 (define $opboundary "(?=[ \n\r\t()\\[\\]{}.:;,\"'`#]|$)")
@@ -67,7 +54,7 @@
 (define $tickop (gluere "`(" $symchar "*)`"))
 (define $colonop (gluere ":(?:\\.|:|" $opchar ")*"))
 (define $dotop (gluere "\\.(?:\\.|:|" $opchar ")*"))
-(define $op (gluere "\\^|" $opchar "(?:" $symchar "*" $opchar ")?" $opboundary))
+(define $op (gluere $opchar "(?:" $symchar "*" $opchar ")?" $opboundary))
 (define $id (gluere "(?:\\d+\\.\\d+)|" $symchar "+"))
 
 (define (liso-lexer in depth)
@@ -82,8 +69,11 @@
       ($colonop one
        (lambda (m) (token 'OP (string->symbol m))))
 
-      ;; .
+      ;; . and ^
       ($dotop many
+       (lambda (m) (list (token 'ID void)
+                         (token 'PFX (string->symbol m)))))
+      (#rx"^\\^" many
        (lambda (m) (list (token 'ID void)
                          (token 'PFX (string->symbol m)))))
 
@@ -164,100 +154,6 @@
     ((done) result)
     (else (error "Unknown policy" policy))))
 
-;; (new-lexer (open-input-string "'space'++`aaa`#\"what is up dog\""))
-;; (new-lexer (open-input-string "hello[+there+] + how.are.things"))
-
-;; (stream->list (new-lexer (open-input-string "[x y] a")))
-
-
-;; (define liso-raw-lexer
-;;   (lexer
-
-;;    ;; comments
-;;    ((rx: ";;" (rx+ (rx~ "\n"))) (liso-raw-lexer input-port))
-
-;;    ;; s-expressions
-;;    ("("
-;;     (let loop ((acc '()))
-;;       (if (regexp-try-match #rx"^\\)" input-port)
-;;           (token-ID (reverse acc))
-;;           (loop (cons (read input-port) acc)))))
-
-;;    ;; brackets
-;;    ((rxor "(" "[" "{") (token-OPEN (string->symbol lexeme)))
-;;    ((rxor ")" "]" "}") (token-CLOSE (string->symbol lexeme)))
-
-;;    ;; 'char'
-;;    ("'\\''" (token-ID #\'))
-;;    ((rx: "'" (rx* (rx~ "'")) "'")
-;;     (let* ((len (string-length lexeme))
-;;            (name (substring lexeme 1 (- len 1))))
-;;       (token-ID (read (open-input-string (string-append "#\\" name))))))
-
-;;    ;; #"symbol"
-;;    ((rx: "#\"" (rx* (rxor (rx~ "\"") "\\\"")) "\"")
-;;     (token-ID (string->symbol
-;;                (read (open-input-string
-;;                       (substring lexeme 1))))))
-
-;;    ;; "string"
-;;    ((rx: "\"" (rx* (rxor (rx~ "\"") "\\\"")) "\"")
-;;     (token-ID (read (open-input-string lexeme))))
-
-;;    ;; `operator`
-;;    ((rx: "`" (rx* symchar) "`")
-;;     (token-OP (read (open-input-string
-;;                      (substring lexeme 1
-;;                                 (- (string-length lexeme) 1))))))
-
-;;    ;; numbers
-;;    ((rx: (rx+ digit) "." (rx+ digit))
-;;     (token-ID (read (open-input-string lexeme))))
-   
-;;    ;; :
-;;    ((rx: ":" (rx+ (rxor opchar "." ":")))
-;;     (token-OP (string->symbol lexeme)))
-;;    (":" (token-OP '|:|))
-
-;;    ;; .
-;;    ((rx: ".." (rx+ ".")) (token-ID (string->symbol lexeme)))
-;;    ((rx: "." (rx* (rxor opchar "." ":")))
-;;     (token-PFX (string->symbol lexeme)))
-
-;;    ;; ,
-;;    ((rx+ ",") (token-OP '|,|))
-
-;;    ;; operator
-;;    ((rx: opchar (rx? (rx: (rx* symchar) opchar)))
-;;     (token-OP (string->symbol lexeme)))
-
-;;    ;; identifier
-;;    ((rx: "#:" (rx+ symchar)) (token-ID (read (open-input-string lexeme))))
-;;    ((rx+ symchar) (token-ID (read (open-input-string lexeme))))
-
-;;    ;; White space
-;;    ((rx+ (char-set " \t")) (liso-raw-lexer input-port))
-;;    ((rx: (rx+ (rx: "\n" (rx* " "))) "\\")
-;;     (liso-raw-lexer input-port))
-
-;;    ;; Indent
-;;    ((rx+ (rx: "\n" (rx* " ")))
-;;     (let ((parts (reverse (cons "" (string-split lexeme "\n" #:trim? #f)))))
-;;       (token-INDENT (string-length (car parts)))))
-
-;;    ;; EOF
-;;    ((eof) 'EOF)))
-
-;; (define (liso-raw port)
-;;   (stream-cons
-;;    (token-OPEN '|{|)
-;;    (let loop ((port port))
-;;      (let ((next (liso-raw-lexer port)))
-;;        (if (eq? next 'EOF)
-;;            (stream (token-CLOSE '|}|) 'EOF)
-;;            (stream-cons
-;;             next
-;;             (loop port)))))))
 
 (define (liso-raw port (depth #f))
   (stream-cons
@@ -329,44 +225,6 @@
                               (process rest))))))))
   (process tokens))
 
-;; (define (liso-alternate tokens (last 'OP))
-;;   (if (stream-empty? tokens)
-;;       (stream)
-;;       (let* ((tok (stream-first tokens))
-;;              (rest (stream-rest tokens))
-;;              (_type (token-name tok))
-;;              (type (case _type ((OPEN) 'PFX) ((CLOSE) 'SFX) (else _type))))
-;;         (define inserts
-;;           `(((ID ID) | |)
-;;             ((ID OP))
-;;             ((ID PFX) | | ,void)
-;;             ((ID SFX))
-;;             ((ID EOF))
-
-;;             ((OP ID))
-;;             ((OP OP) ,void)
-;;             ((OP PFX) ,void)
-;;             ((OP SFX) ,void)
-;;             ((OP EOF) ,void)
-
-;;             ((PFX ID))
-;;             ((PFX OP) ,void)
-;;             ((PFX PFX) ,void)
-;;             ((PFX SFX) ,void)
-;;             ((PFX EOF) ,void)
-
-;;             ((SFX ID) ,void | |)
-;;             ((SFX OP) ,void)
-;;             ((SFX PFX) ,void | | ,void)
-;;             ((SFX SFX) ,void)
-;;             ((SFX EOF) ,void)))
-;;         (stream-append
-;;          (cdr (assoc (list last type) inserts))
-;;          (if (eq? (token-value tok) 'EOF)
-;;              (list)
-;;              (list (token-value tok)))
-;;          (liso-alternate rest type)))))
-
 
 (define (liso-alternate tokens (last-id? #f))
   (if (stream-empty? tokens)
@@ -382,10 +240,9 @@
           ((and (not id?) (not last-id?))
            (list void))
           (else '()))
-         ;; (if (eq? (token-value tok) 'EOF)
-         ;;     (list)
-         (list (token-value tok))
-         (liso-alternate rest id?)))))
+         (stream-cons
+          (token-value tok)
+          (liso-alternate rest id?))))))
 
 
 (define-syntax-rule (chk expr expr2)
@@ -485,6 +342,7 @@
     ;; dot and juxtaposition
     ((255 255 1001 1000) | |)
     ((255 255 2000 10000)
+     ^
      ,(lambda (x)
         ;; x == .{...}, e.g. ., .+, .&*&, etc.
         (let* ((s (symbol->string x)))

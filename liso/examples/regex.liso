@@ -16,21 +16,24 @@ require:
 ;; [...]           capture
 ;; {...}           groups but does not capture
 
+;; The second argument of suffix operators is void, hence
+;; the ^{void? ? _} matchers all over the place. It could
+;; be omitted if match recognized void as a pattern.
+
 build-regexp = match-lambda:
    .any => "."
    .alpha => "[a-zA-Z]"
    .digit => "[0-9]"
    string? ? s => regexp-quote[s]
    char? ? c => string[c]
-   .{{^a} || {^b}} => format["(?:~a|~a)", build-regexp[a], build-regexp[b]]
-   ;; [.{||}, a, b] => format["(?:~a|~a)", build-regexp[a], build-regexp[b]]
-   [.{*}, x, void? ? _] => format["(?:~a*)", build-regexp[x]]
-   [.{*}, x, [.begin, m, n]] => format["(?:~a{~a,~a})", build-regexp[x], m, n]
-   [.{*}, x, times] => format["(?:~a{~a})", build-regexp[x], times]
-   [.{+}, x, void? ? _] => format["(?:~a+)", build-regexp[x]]
-   [.{?}, x, void? ? _] => format["(?:~a?)", build-regexp[x]]
-   [.list, xs, ...] => "(" ++ {++}{map[build-regexp, xs]} ++ ")"
-   [.begin, xs, ...] => "(?:" ++ {++}{map[build-regexp, xs]} ++ ")"
+   .{^a || ^b} => format["(?:~a|~a)", build-regexp[a], build-regexp[b]]
+   .{^x * ^{void? ? _}} => format["(?:~a*)", build-regexp[x]]
+   .{^x * {^m, ^n}} => format["(?:~a{~a,~a})", build-regexp[x], m, n]
+   .{^x * ^times} => format["(?:~a{~a})", build-regexp[x], times]
+   .{^x + ^{void? ? _}} => format["(?:~a+)", build-regexp[x]]
+   .{^x ? ^{void? ? _}} => format["(?:~a?)", build-regexp[x]]
+   .[^xs, ...] => "(" ++ {++}{map[build-regexp, xs]} ++ ")"
+   .{^xs, ...} => "(?:" ++ {++}{map[build-regexp, xs]} ++ ")"
 
 define-proxy rx:
    string? ? s => regexp[s]
