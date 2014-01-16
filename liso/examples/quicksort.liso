@@ -1,5 +1,5 @@
 
-#lang liso
+#lang reader "../lang/reader.rkt"
 
 ;; Translation of
 ;; http://rosettacode.org/wiki/Sorting_algorithms/Quicksort#Racket

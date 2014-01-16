@@ -34,10 +34,15 @@ including examples of macros and operator macros.
 Using
 -----
 
-To try it out, put the following line at the beginning of a source
-file:
+You can try out the _[first version] by putting the following line at
+the beginning of a source file:
 
     #lang planet breuleux/liso
+
+For the bleeding edge version, just download the code somewhere and
+then put this at the beginning:
+
+    #lang reader "/path/to/liso/lang/reader.rkt"
 
 Then, execute as follows:
 
@@ -97,11 +102,11 @@ Aliases
     | @quote: expr         | ..expr
     | @quasiquote: expr    | .expr
     | @unquote: expr       | ^expr
-    | expt(x, y)           | x ** y
-    | cons(x, y)           | x :: y
-    | string-append(x, y)  | x ++ y
-    | not(x == y)          | x /= y
-    | or(a, b, c)          | a || b || c
-    | and(a, b, c)         | a && b && c
-    | not(x)               | ! x
+    | expt[x, y]           | x ** y
+    | cons[x, y]           | x :: y
+    | string-append[x, y]  | x ++ y
+    | not[x == y]          | x /= y
+    | or[a, b, c]          | a || b || c
+    | and[a, b, c]         | a && b && c
+    | not[x]               | ! x
 
