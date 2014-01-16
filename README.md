@@ -34,7 +34,7 @@ including examples of macros and operator macros.
 Using
 -----
 
-You can try out the _[first version] by putting the following line at
+You can try out the *first version* by putting the following line at
 the beginning of a source file:
 
     #lang planet breuleux/liso
