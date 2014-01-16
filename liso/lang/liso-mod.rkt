@@ -82,9 +82,15 @@
 (define-syntax-rule (block . body)
   (let () . body))
 
+
+
 (define-syntax liso-let
-  (syntax-rules (list =)
+  (syntax-rules (begin list =)
+    ((_ (= id value) stmt ...)
+     (let ((id value)) stmt ...))
     ((_ (list (= id value) ...) stmt ...)
+     (let ((id value) ...) stmt ...))
+    ((_ (begin (= id value) ...) stmt ...)
      (let ((id value) ...) stmt ...))
     ((_ (name (= id value) ...) stmt ...)
      (let name ((id value) ...) stmt ...))
@@ -92,18 +98,38 @@
      (let name () stmt ...))))
 
 (define-syntax liso-let*
-  (syntax-rules (list =)
+  (syntax-rules (begin list =)
+    ((_ (= id value) stmt ...)
+     (let* ((id value)) stmt ...))
     ((_ (list (= id value) ...) stmt ...)
+     (let* ((id value) ...) stmt ...))
+    ((_ (begin (= id value) ...) stmt ...)
      (let* ((id value) ...) stmt ...))))
 
+(define-syntax canon-liso-letrec
+  (syntax-rules ()
+    ((_ ((var val) ...) body ...)
+     (let ()
+       (define var val)
+       ...
+       (begin body ...)))))
+
 (define-syntax liso-letrec
-  (syntax-rules (list =)
+  (syntax-rules (begin list =)
+    ((_ (= id value) stmt ...)
+     (canon-liso-letrec ((id value)) stmt ...))
     ((_ (list (= id value) ...) stmt ...)
-     (letrec ((id value) ...) stmt ...))))
+     (canon-liso-letrec ((id value) ...) stmt ...))
+    ((_ (begin (= id value) ...) stmt ...)
+     (canon-liso-letrec ((id value) ...) stmt ...))))
 
 (define-syntax liso-parameterize
-  (syntax-rules (list =)
+  (syntax-rules (begin list =)
+    ((_ (= id value) stmt ...)
+     (parameterize ((id value)) stmt ...))
     ((_ (list (= id value) ...) stmt ...)
+     (parameterize ((id value) ...) stmt ...))
+    ((_ (begin (= id value) ...) stmt ...)
      (parameterize ((id value) ...) stmt ...))))
 
 (define-syntax liso-lambda

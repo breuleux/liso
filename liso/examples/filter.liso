@@ -1,15 +1,15 @@
 
 #lang liso
 
-filt[pred?, xs] =
-   if null?[xs]:
-      []
-      block:
-         x = car[xs]
-         rest = filt[pred?, cdr[xs]]
-         if pred?[x]:
-            x :: rest
-            rest
+
+filt[?, xs] =
+      @match xs:
+        [] => []
+        [x, rest, ...] =>
+          tail = filt[?, rest]
+          @if ? x:
+            x :: tail
+            tail
 
 results = filt[[x] -> x > 0
                [0, 1, -2, -3, 4]]

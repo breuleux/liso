@@ -1,8 +1,8 @@
 
 #lang liso
 
-define-syntax {%%}:
-   syntax-rules [list, begin]:
+@define-syntax %%:
+   @syntax-rules list, begin:
       {id %% {child, ...}} =>
          html[.id][child, ...]
       {id %% [opt, ...]} =>
@@ -13,7 +13,7 @@ define-syntax {%%}:
          html[.id][{%%}[a, b, ...]]
 
 html[id] =
-   if symbol?[id]:
+   @if symbol?[id]:
       id := symbol->string[id]
       #f
    otag = "<" ++ id ++ ">"

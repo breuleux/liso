@@ -4,27 +4,27 @@
 
 ;; swap macro (implemented as the <=> operator)
 
-define-syntax-rule {x <=> y}:
-   vars [temp = x]:
+@define-syntax-rule x <=> y:
+   @vars temp = x:
       x := y
       y := temp
 
 a = 1, b = 2
-displayln: [a, b]
+displayln => [a, b]
 a <=> b
-displayln: [a, b]
+displayln => [a, b]
 
 
 ;; A clone of cond, backed with <if>_<else>
 
-define-syntax kond:
-   syntax-rules []:
-      kond: {} =>
+@define-syntax kond:
+   @syntax-rules []:
+      {@kond: {}} =>
          #f
-      kond: {test => body, rest, ...} =>
-         body <if> test <else> {kond: {rest, ...}}
+      {@kond: {test => body, rest, ...}} =>
+         body <if> test <else> {@kond: {rest, ...}}
 
-kond:
+@kond:
    0 > 0 => "a"
    0 < 0 => "b"
    0 == 0 => "c"
@@ -37,14 +37,14 @@ kond:
 ;; thread[a, b[c], d, [e] -> f]
 ;; ==> {[e] -> f}[d[b[a, c]]]
 
-define-syntax thread-one:
-   syntax-rules [->, list, begin]:
+@define-syntax thread-one:
+   @syntax-rules [->, list, begin]:
       _[v, x -> y] => {x -> y}[v]
       _[v, f[args, ...]] => f[v, args, ...]
       _[v, f] => f[v]
 
-define-syntax thread:
-   syntax-rules [list, begin]:
+@define-syntax thread:
+   @syntax-rules [list, begin]:
       thread[init, {entry, ...}] =>
          thread[init, entry, ...]
       thread[init, entry] =>
@@ -54,7 +54,7 @@ define-syntax thread:
 
 thread[[1, 2, 3, 4], reverse, car, * 10]
 
-thread [1, 2, 3, 4]:
+@thread [1, 2, 3, 4]:
    reverse
    car
    * 10
@@ -63,7 +63,7 @@ thread [1, 2, 3, 4]:
 
 ;; Aliasing thread to the |> operator
 
-define-syntax-rule {|>}[x, ...]:
+@define-syntax-rule {|>}[x, ...]:
    thread[x, ...]
 
 [1, 2, 3, 4] |>
@@ -73,4 +73,27 @@ define-syntax-rule {|>}[x, ...]:
    [x] -> x / 3
 
 [1, 2, 3] |> car |> {+ 1} |> {* 8}
+
+
+
+;; for
+
+@define-syntax for:
+   @syntax-rules [list, begin]:
+      for[{}, body, ...] =>
+         {body, ...}
+      for[{spec, rest, ...}, body, ...] =>
+         for[spec, for[{rest, ...}, body, ...]]
+      for[var = start <to> end <by> increment, body, ...] =>
+         @vars loop[var = start]:
+            @when var <= end:
+               body, ..., loop[var + increment]
+      for[var = start <to> end, body, ...] =>
+         for[var = start <to> end <by> 1, body, ...]
+
+@for x = 1 <to> 3, y = 10 <to> 30 <by> 10:
+   display[[x, y]]
+
+newline[]
+
 

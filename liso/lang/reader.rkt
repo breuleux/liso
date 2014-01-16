@@ -15,6 +15,7 @@
 (define liso-readtable
   (make-readtable
    (current-readtable)
+
    #\{ 'terminating-macro 
    (case-lambda
     ((ch port)
@@ -34,7 +35,7 @@
         (token 'ID void)))
 
 
-(define $opchar "[+\\-*/~^<>=%$@&|?!]")
+(define $opchar "[+\\-*/~^<>=%$&|?!]")
 (define $symchar "[^ \n\r\t()\\[\\]{}.:;,\"'`#]")
 (define $opboundary "(?=[ \n\r\t()\\[\\]{}.:;,\"'`#]|$)")
 
@@ -56,18 +57,37 @@
 (define $dotop (gluere "\\.(?:\\.|:|" $opchar ")*"))
 (define $op (gluere $opchar "(?:" $symchar "*" $opchar ")?" $opboundary))
 (define $id (gluere "(?:\\d+\\.\\d+)|" $symchar "+"))
+(define $keyword (gluere "@(" $symchar "+)"))
 
 (define (liso-lexer in depth)
   (match-define (cons policy result)
     (lexotron in
 
+      ;; ;; parens
+      ;; (#px"^\\(" many
+      ;;     (lambda (m)
+      ;;       (list (token 'ID void)
+      ;;             (token 'PFX (string->symbol m)))))
+      ;; (#px"^\\)" one
+      ;;     (lambda (m) (token 'OPEN (string->symbol m))))
+      ;; (#px"^:" one
+      ;;     (lambda (m) (token 'CLOSE (string->symbol m))))
+
+      ($keyword many
+          (lambda (_ m) (tokens-OPEN (list 'KW (string->symbol m)))))
+      ($colonop one
+          (lambda (m)
+            (if (equal? m ":")
+                (token 'CLOSE (string->symbol m))
+                (token 'OP (string->symbol m)))))
+
       ;; White space
       (#rx"^[ \t]+" ignore #f)
       (#rx"^(\n[ \t]*)+\\\\" ignore #f)
 
-      ;; :
-      ($colonop one
-       (lambda (m) (token 'OP (string->symbol m))))
+      ;; ;; :
+      ;; ($colonop one
+      ;;  (lambda (m) (token 'OP (string->symbol m))))
 
       ;; . and ^
       ($dotop many
@@ -213,9 +233,9 @@
                               (liso-indent rest process))))
             ((CLOSE)
              (stream-append
-              (foldl append
+              (foldr append '()
                      (map (lambda (_) (tokens-CLOSE $indent-close))
-                          (queue->list stack)) '())
+                          (queue->list stack)))
               (list tok)
               (cont rest)))
             (else
@@ -309,10 +329,18 @@
     ((255 255 10000 0) |}| |)| |]| (PFX |}|) (PFX |]|) (PFX |)|))
 
     ;; organization and assignment
-    ((255 255 1 1) |,| (PFX |,|))
+    ((255 255 3 3) |,| (PFX |,|))
     ((255 255 5 6) => (PFX =>))
-    ((255 4   10 11) : ->)  ;; 4 prevents arith/custom operators in lhs
+    ((255 4   10 11) ->)  ;; 4 prevents arith/custom operators in lhs
     ((255 255 10 11) = :=)
+
+    ;; KW
+    ((255 255 1 10000)
+     ,(match-lambda
+       ((list 'KW x) #t)
+       ((list 'PFX (list 'KW x)) #t)
+       (_ #f)))
+    ((255 255 4 1) : (PFX :))
 
     ;; PFX
     ((255 255 0 9999) ,(lambda (x) (list? x)))
@@ -350,6 +378,7 @@
 
     ;; custom
     ((2 2 20 20) ,(lambda (x) #t))
+
     ))
 
 (define ord-hash (make-hash))
@@ -449,6 +478,23 @@
                        `(list))
                       (_ `(list ,arg)))))
 
+            (`((KW ,f) :)
+             (let ((arg (match (cadr args)
+                          ((list '#%seq args ...)
+                           `(begin ,@args))
+                          ((== void eq?)
+                           #f)
+                          (x x)))
+                   (body (match (caddr args)
+                          ((list 'begin args ...)
+                           args)
+                          ((== void eq?)
+                           `())
+                          (x (list x)))))
+               (if arg
+                   `(,f ,arg ,@body)
+                   `(,f ,@body))))
+
             ;; ('(|[| |]|)
             ;;  (let ((arg (cadr args)))
             ;;    (match arg
@@ -484,25 +530,25 @@
                  ((list begin rest ...)
                   (list 'quasiquote arg)))))
 
-            ('(:)
-             (let* ((lhs (car args))
-                    (body (cadr args))
-                    (results (split-lead lhs))
-                    (lead (car results))
-                    (arg (cdr results)))
-               (define rest
-                 (match body
-                   ((list 'begin stmts ...)
-                    stmts)
-                   (_
-                    (list body))))
-               (if (eq? lead void)
-                   (if (eq? arg absent)
-                       rest
-                       (cons arg rest))
-                   (if (eq? arg absent)
-                       (cons lead rest)
-                       (cons lead (cons arg rest))))))
+            ;; ('(:)
+            ;;  (let* ((lhs (car args))
+            ;;         (body (cadr args))
+            ;;         (results (split-lead lhs))
+            ;;         (lead (car results))
+            ;;         (arg (cdr results)))
+            ;;    (define rest
+            ;;      (match body
+            ;;        ((list 'begin stmts ...)
+            ;;         stmts)
+            ;;        (_
+            ;;         (list body))))
+            ;;    (if (eq? lead void)
+            ;;        (if (eq? arg absent)
+            ;;            rest
+            ;;            (cons arg rest))
+            ;;        (if (eq? arg absent)
+            ;;            (cons lead rest)
+            ;;            (cons lead (cons arg rest))))))
 
             ((list '|,| ...)
              (let ((args (filter (lambda (arg) (not (eq? arg void))) args)))
@@ -546,8 +592,8 @@
 
 (define (liso-read-syntax src in)
   (define ptree (parse in))
-  ;; (pretty-print ptree)
-  ;; (display "======\n")
+  (pretty-print ptree)
+  (display "======\n")
   (define rval
     (with-syntax
         ((code ptree)

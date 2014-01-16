@@ -6,15 +6,14 @@
 ;; with a few changed variable names.
 
 quicksort[a-list, <] =
-   match a-list:
+   @match a-list:
       [] => []
       cons[x, xs] =>
-         append:
-            quicksort[filter[[e] -> e < x, xs], <]
-            [x]
-            quicksort[filter[[e] -> not[e < x], xs], <]
+         append[head, [x], tail] $
+            head = quicksort[filter[[e] -> e < x, xs], <]
+            tail = quicksort[filter[[e] -> not[e < x], xs], <]
 
 l = [1, 2, 8, -1, 4, 71, -3, 5]
-displayln: format["Unsorted: ~a", l]
-displayln: format["Sorted: ~a", quicksort[l, <]]
+displayln => format["Unsorted: ~a", l]
+displayln => format["Sorted: ~a", quicksort[l, <]]
 

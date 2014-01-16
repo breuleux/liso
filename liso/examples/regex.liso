@@ -1,7 +1,7 @@
 
 #lang liso
 
-require:
+@require:
    "proxy.liso"
 
 ;; A mini-language for regular expressions
@@ -20,7 +20,7 @@ require:
 ;; the ^{void? ? _} matchers all over the place. It could
 ;; be omitted if match recognized void as a pattern.
 
-build-regexp = match-lambda:
+build-regexp = @match-lambda:
    .any => "."
    .alpha => "[a-zA-Z]"
    .digit => "[0-9]"
@@ -35,7 +35,7 @@ build-regexp = match-lambda:
    .[^xs, ...] => "(" ++ {++}{map[build-regexp, xs]} ++ ")"
    .{^xs, ...} => "(?:" ++ {++}{map[build-regexp, xs]} ++ ")"
 
-define-proxy rx:
+@define-proxy rx:
    string? ? s => regexp[s]
    x => regexp[build-regexp[x]]
 

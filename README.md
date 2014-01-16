@@ -10,7 +10,7 @@ Examples
 --------
 
     fib[n] =
-       if {n <= 1}:
+       @if n <= 1:
           n
           fib[n - 1] + fib[n - 2]
     
@@ -81,29 +81,27 @@ Rules
     | Group      | {x}                       | x
     |            | {x, y, ...}               | (begin x y ...)
     | Arrow      | x => y                    | (x y) (for all x)
-    | Lift       | x : y                     | (x y) (for atomic x)
-    |            | x y : z                   | (x y z)
-    |            | x y : {z, w, ...}         | (x y z w ...)
-    |            | x y(a, ...) : {z, w, ...} | (x (y a ...) z w ...)
-    |            | x y q : {z, w, ...}       | (x (apply y q) z w ...)
+    | Contro     | @K : x                    | (K x)
+    |            | @K x : y                  | (K x y)
+    |            | @K x, y : {a, b, c}       | (K (begin x y) a b c)
     | Sexp       | (...)                     | (...)
 
 
 Aliases
 -------
 
-    + Usual syntax        + Equivalent operator
-    | define spec: body   | spec = body
-    | lambda args: body   | args -> body
-    | set! var: value     | var := value
-    | quote: expr         | ..expr
-    | quasiquote: expr    | .expr
-    | unquote: expr       | ^expr
-    | expt(x, y)          | x ** y
-    | cons(x, y)          | x :: y
-    | string-append(x, y) | x ++ y
-    | not(x == y)         | x /= y
-    | or(a, b, c)         | a || b || c
-    | and(a, b, c)        | a && b && c
-    | not(x)              | ! x
+    + Usual syntax         + Equivalent operator
+    | @define spec: body   | spec = body
+    | @lambda args: body   | args -> body
+    | @set! var: value     | var := value
+    | @quote: expr         | ..expr
+    | @quasiquote: expr    | .expr
+    | @unquote: expr       | ^expr
+    | expt(x, y)           | x ** y
+    | cons(x, y)           | x :: y
+    | string-append(x, y)  | x ++ y
+    | not(x == y)          | x /= y
+    | or(a, b, c)          | a || b || c
+    | and(a, b, c)         | a && b && c
+    | not(x)               | ! x
 

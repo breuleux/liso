@@ -1,7 +1,7 @@
 
 #lang liso
 
-;; Fun with operators!
+;; Fun with operators
 
 >>> x =
    display[x]

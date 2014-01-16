@@ -1,16 +1,16 @@
 
 #lang liso
 
-require:
+@require:
    "proxy.liso"
 
-define-proxy point[x, y]:
+@define-proxy point[x, y]:
    .x => x
    .y => y
    .abs => {x * x + y * y} ** 0.5
-   [i] => match i:
-           0 => x
-           1 => y
+   [i] => @match i:
+             0 => x
+             1 => y
    .add => [p2] -> point[x + p2.x, y + p2.y]
    .tostring => format["point[~a, ~a]", x, y]
 
