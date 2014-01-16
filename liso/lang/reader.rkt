@@ -63,16 +63,6 @@
   (match-define (cons policy result)
     (lexotron in
 
-      ;; ;; parens
-      ;; (#px"^\\(" many
-      ;;     (lambda (m)
-      ;;       (list (token 'ID void)
-      ;;             (token 'PFX (string->symbol m)))))
-      ;; (#px"^\\)" one
-      ;;     (lambda (m) (token 'OPEN (string->symbol m))))
-      ;; (#px"^:" one
-      ;;     (lambda (m) (token 'CLOSE (string->symbol m))))
-
       ($keyword many
           (lambda (_ m) (tokens-OPEN (list 'KW (string->symbol m)))))
       ($colonop one
@@ -592,8 +582,8 @@
 
 (define (liso-read-syntax src in)
   (define ptree (parse in))
-  (pretty-print ptree)
-  (display "======\n")
+  ;; (pretty-print ptree)
+  ;; (display "======\n")
   (define rval
     (with-syntax
         ((code ptree)
