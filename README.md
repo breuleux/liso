@@ -71,6 +71,12 @@ Highlights
   for example.
 
 
+Precedence rules
+----------------
+
+![precedence](https://raw.github.com/breuleux/liso/master/doc/liso_priority.png)
+
+
 Rules
 -----
 
